@@ -146,8 +146,8 @@ export async function POST(req: Request) {
     }
 
     // ၃။ A-PAY (မြန်မာငွေ)
-    const apikey = process.env.APAY_API_KEY || "9a364faa03333a71899a53306b7e7fd9";
-    const projectId = process.env.APAY_PROJECT_ID || "0409923";
+    const apikey = "9a364faa03333a71899a53306b7e7fd9";
+const projectId = "0409923";
     const baseUrl = "https://pay-crm.com";
 
     const host = req.headers.get("host") || "game-topup-store-sooty.vercel.app";
