@@ -1,0 +1,50 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ဂိမ်းအမျိုးအစားများ
+model Game {
+  id             String    @id @default(cuid())
+  name           String
+  slug           String    @unique
+  requiresZoneId Boolean   @default(true)
+  products       Product[]
+  orders         Order[]
+  createdAt      DateTime  @default(now())
+}
+
+// စိန် ပက်ကေ့ခ်ျများ
+model Product {
+  id           String   @id @default(cuid())
+  gameId       String
+  game         Game     @relation(fields: [gameId], references: [id])
+  name         String
+  diamondCount Int
+  price        Float
+  orders       Order[]
+  createdAt    DateTime @default(now())
+}
+
+// ဝယ်ယူမှု အော်ဒါများ
+model Order {
+  id                String   @id @default(cuid())
+  orderCode         String   @unique
+  gameId            String
+  game              Game     @relation(fields: [gameId], references: [id])
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id])
+  playerId          String
+  zoneId            String?
+  customerContact   String?
+  amount            Float
+  paymentMethod     String
+  paymentStatus     String   @default("PENDING")
+  fulfillmentStatus String   @default("PENDING")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
