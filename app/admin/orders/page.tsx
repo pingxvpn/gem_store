@@ -41,7 +41,7 @@ export default function AdminOrdersPage() {
   const [newDiscountUSD, setNewDiscountUSD] = useState(0.15);
   const [newMaxUses, setNewMaxUses] = useState(50); // Default အယောက် ၅၀
 
-  const ADMIN_PASSWORD = "admin12345"; 
+  const ADMIN_PASSWORD = "Khant#461"; 
 
   useEffect(() => {
     const savedAuth = sessionStorage.getItem("admin_auth");
