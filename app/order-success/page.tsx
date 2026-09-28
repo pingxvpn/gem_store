@@ -21,7 +21,6 @@ export default async function OrderSuccessPage({
 
   const isPaid = order?.paymentStatus === "PAID";
   const isPending = !order || order?.paymentStatus === "PENDING";
-  const isCompleted = order?.fulfillmentStatus === "COMPLETED" || order?.fulfillmentStatus === "SUCCESS";
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
@@ -72,7 +71,7 @@ export default async function OrderSuccessPage({
           <div className="flex justify-between border-b border-slate-800/80 pb-2">
             <span className="text-slate-400">ကျသင့်ငွေ:</span>
             <span className="font-bold text-slate-100">
-              {order ? `${order.amount.toLocaleString()} ${order.paymentMethod === "BINANCE" ? "USD" : "MMK"}` : "N/A"}
+              {order ? `${order.amount.toLocaleString()} ${order.paymentMethod === "BINANCE" || order.paymentMethod === "NOWPAYMENTS" ? "USD" : "MMK"}` : "N/A"}
             </span>
           </div>
 
@@ -90,15 +89,15 @@ export default async function OrderSuccessPage({
           </div>
         </div>
 
-        {/* Buttons */}
+        {/* Buttons (No onClick, Error-Free Link) */}
         <div className="space-y-2">
           {isPending && (
-            <button
-              onClick={() => typeof window !== "undefined" && window.location.reload()}
-              className="block w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition text-xs cursor-pointer shadow"
+            <Link
+              href={`/order-success?order_id=${orderId}&pack=${encodeURIComponent(params.pack || "")}&amount=${params.amount || ""}&player=${params.player || ""}`}
+              className="block w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition text-xs shadow"
             >
               🔄 အခြေအနေ ပြန်လည်စစ်ဆေးမည် (Refresh)
-            </button>
+            </Link>
           )}
 
           <Link
