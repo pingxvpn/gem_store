@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { checkAPayDepositStatus } from "@/lib/apay";
+import { deliverViaShop2TopUp } from "@/lib/shop2topup";
+import { sendTelegramNotification } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -11,13 +14,53 @@ export default async function OrderSuccessPage({
   const params = await searchParams;
   const orderId = params.order_id || "";
 
-  // Database ထဲတွင် အော်ဒါ တကယ်ငွေဝင်ပြီးပြီလား စစ်ဆေးခြင်း
-  const order = orderId
+  let order = orderId
     ? await prisma.order.findUnique({
         where: { orderCode: orderId },
         include: { product: true },
       })
     : null;
+
+  // AUTO-RECONCILIATION: အကယ်၍ အော်ဒါက PENDING ဖြစ်နေဆဲပါက A-Pay ဆီ တိုက်ရိုက် လှမ်းစစ်ဆေးမည်
+  if (order && order.paymentStatus === "PENDING" && order.paymentMethod === "APAY") {
+    const aPayCheck = await checkAPayDepositStatus(order.orderCode);
+
+    if (aPayCheck.isPaid) {
+      // ၁။ Database တွင် PAID အဖြစ် အလိုအလျောက် ပြောင်းလဲခြင်း
+      order = await prisma.order.update({
+        where: { id: order.id },
+        data: { paymentStatus: "PAID" },
+        include: { product: true },
+      });
+
+      // ၂။ Telegram သို့ Noti ချက်ချင်း ပို့ခြင်း
+      await sendTelegramNotification(`
+🎉 <b>A-Pay ငွေဝင်ကြောင်း အတည်ပြုပြီးပါပြီ!</b>
+
+🆔 <b>Order:</b> <code>${order.orderCode}</code>
+👤 <b>Player ID:</b> <code>${order.playerId}</code> (${order.zoneId || "-"})
+💎 <b>Pack:</b> ${order.product?.name || "Diamonds"}
+💰 <b>Amount:</b> ${order.amount.toLocaleString()} MMK
+💳 <b>Payment:</b> A-Pay
+⚡ <b>Status:</b> PAID (စိန် Auto ပို့နေပါသည်)
+      `);
+
+      // ၃။ Shop2TopUp မှတစ်ဆင့် စိန်ကို စက္ကန့်ပိုင်းအတွင်း AUTO ပို့ဆောင်ခြင်း
+      const topup = await deliverViaShop2TopUp({
+        playerId: order.playerId,
+        zoneId: order.zoneId || undefined,
+        packId: "Weekly",
+      });
+
+      if (topup.success) {
+        order = await prisma.order.update({
+          where: { id: order.id },
+          data: { fulfillmentStatus: "COMPLETED" },
+          include: { product: true },
+        });
+      }
+    }
+  }
 
   const isPaid = order?.paymentStatus === "PAID";
   const isPending = !order || order?.paymentStatus === "PENDING";
@@ -44,7 +87,7 @@ export default async function OrderSuccessPage({
             </div>
             <div className="space-y-1">
               <h1 className="text-2xl font-black text-white">ငွေပေးချေမှုကို စောင့်ဆိုင်းနေပါသည်</h1>
-              <p className="text-amber-400 text-xs font-semibold">ငွေလွှဲအတည်ပြုချက် စောင့်ဆိုင်းနေဆဲ ဖြစ်ပါသည်</p>
+              <p className="text-amber-400 text-xs font-semibold">ငွေလွှဲပြီးပါက အောက်ပါ Refresh ခလုတ်ကို နှိပ်ပါ</p>
             </div>
           </>
         )}
@@ -89,7 +132,7 @@ export default async function OrderSuccessPage({
           </div>
         </div>
 
-        {/* Buttons (No onClick, Error-Free Link) */}
+        {/* Buttons */}
         <div className="space-y-2">
           {isPending && (
             <Link
